@@ -1,0 +1,179 @@
+// Badminton Ladder Tournament App — Database Schema
+// Prisma 7 — PostgreSQL
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── User & Authentication ────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("PLAYER") // PLAYER | COACH
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  coachedGroups     Group[]         @relation("CoachGroups")
+  groupMemberships  GroupMember[]
+  registrations     Registration[]
+  matchesAsPlayer1  Match[]         @relation("Player1Matches")
+  matchesAsPlayer2  Match[]         @relation("Player2Matches")
+  partneredWith     Registration[]  @relation("PartnerRegistrations")
+  accounts          Account[]
+  sessions          Session[]
+
+  @@map("users")
+}
+
+// NextAuth.js v5 models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ─── Groups ───────────────────────────────────────────────────────────
+
+model Group {
+  id             String   @id @default(uuid())
+  name           String
+  coachId        String
+  invitationCode String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  coach        User           @relation("CoachGroups", fields: [coachId], references: [id])
+  members      GroupMember[]
+  tournaments  Tournament[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  status    String   @default("ACTIVE") // ACTIVE | KICKED
+  joinedAt  DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+// ─── Tournaments & Ladders ────────────────────────────────────────────
+
+model Tournament {
+  id              String   @id @default(uuid())
+  groupId         String
+  dateTime        DateTime
+  signupDeadline  DateTime
+  formatType      String   // ROUND_ROBIN | TEAM
+  matchType       String   // SINGLES | DOUBLES
+  totalRounds     Int      @default(1)
+  status          String   @default("UPCOMING") // UPCOMING | SIGNUP_OPEN | IN_PROGRESS | COMPLETED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  group         Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  ladders       WeeklyLadder[]
+  registrations Registration[]
+  matches       Match[]
+
+  @@map("tournaments")
+}
+
+model WeeklyLadder {
+  id           String   @id @default(uuid())
+  tournamentId String
+  label        String   // "Ladder A", "Ladder B", "Ladder C", etc.
+  weekNumber   Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  matches       Match[]
+
+  @@unique([tournamentId, label])
+  @@map("weekly_ladders")
+}
+
+// ─── Registrations ────────────────────────────────────────────────────
+
+model Registration {
+  id           String   @id @default(uuid())
+  tournamentId String
+  userId       String
+  partnerId    String?  // Optional — for doubles pair signup
+  ladderId     String?  // Assigned by coach weekly (carry-over logic)
+  createdAt    DateTime @default(now())
+
+  tournament Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partner    User?         @relation("PartnerRegistrations", fields: [partnerId], references: [id])
+  ladder     WeeklyLadder? @relation(fields: [ladderId], references: [id])
+
+  @@unique([tournamentId, userId])
+  @@map("registrations")
+}
+
+// ─── Matches ──────────────────────────────────────────────────────────
+
+model Match {
+  id           String   @id @default(uuid())
+  tournamentId String
+  ladderId     String
+  roundNumber  Int      @default(1)
+  player1Id    String
+  player2Id    String
+  player1Score Int?
+  player2Score Int?
+  status       String   @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED
+  courtNumber  Int?
+  matchOrder   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  ladder     WeeklyLadder  @relation(fields: [ladderId], references: [id], onDelete: Cascade)
+  player1    User          @relation("Player1Matches", fields: [player1Id], references: [id])
+  player2    User          @relation("Player2Matches", fields: [player2Id], references: [id])
+
+  @@map("matches")
+}
