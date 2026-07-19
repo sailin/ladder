@@ -440,6 +440,11 @@ export default function CoachPage() {
                         <option value="TEAM">Team</option>
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Rounds</label>
+                      <input type="number" min={1} max={10} value={newTournament.totalRounds} onChange={e => setNewTournament({ ...newTournament, totalRounds: parseInt(e.target.value) || 1 })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                      <p className="text-[10px] text-gray-400 mt-0.5">How many times each player faces every other player.</p>
+                    </div>
                   </div>
                   <button onClick={handleCreateTournament} className="w-full py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
                     Create Tournament
