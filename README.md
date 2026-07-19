@@ -62,6 +62,10 @@ npx prisma migrate dev
 npx tsx prisma/seed.ts
 ```
 
+> **Troubleshooting:** If seed fails with `Cannot find module '../src/generated/prisma/client'`,
+> run `npx prisma generate` first. This normally runs automatically after `npm install`,
+> but can be triggered manually if needed.
+
 ### 5. Start the dev server
 
 ```bash
