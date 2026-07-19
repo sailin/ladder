@@ -661,14 +661,14 @@ export default function CoachPage() {
             {tournaments.map((t) => (
               <div
                 key={t.id}
-                className={`bg-white rounded-xl border p-4 ${
+                className={`bg-white rounded-xl border p-4 cursor-pointer transition-colors ${
                   selectedTournament?.id === t.id
-                    ? "border-blue-300"
-                    : "border-gray-100"
+                    ? "border-blue-300 bg-blue-50"
+                    : "border-gray-100 hover:border-gray-200"
                 }`}
                 onClick={async () => {
                   setSelectedTournament(t);
-                  await fetchLadders(t.id);
+                  try { await fetchLadders(t.id); } catch { /* ladders may not exist yet */ }
                 }}
               >
                 <div className="flex items-start justify-between mb-2">
