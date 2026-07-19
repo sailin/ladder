@@ -440,11 +440,7 @@ export default function CoachPage() {
                         <option value="TEAM">Team</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Cycles</label>
-                      <input type="number" min={1} max={10} value={newTournament.totalRounds} onChange={e => setNewTournament({ ...newTournament, totalRounds: parseInt(e.target.value) || 1 })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-                      <p className="text-[10px] text-gray-400 mt-0.5">1 = everyone plays everyone once. 2 = double round-robin.</p>
-                    </div>
+
                   </div>
                   <button onClick={handleCreateTournament} className="w-full py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
                     Create Tournament
@@ -647,8 +643,11 @@ export default function CoachPage() {
                   rounds.get(m.roundNumber)!.push(m);
                 }
                 return Array.from(rounds.entries()).map(([roundNum, roundMatches]) => (
-                  <div key={roundNum}>
-                    <p className="text-xs text-gray-400 font-medium mb-2 uppercase">Round {roundNum}</p>
+                  <div key={roundNum} className="mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">Round {roundNum}</span>
+                      <span className="text-xs text-gray-400">{roundMatches.length} match{roundMatches.length !== 1 ? "es" : ""}</span>
+                    </div>
                     <div className="space-y-2">
                       {roundMatches.map(match => (
                         <div key={match.id} className="bg-white rounded-xl border border-gray-100 p-4">
