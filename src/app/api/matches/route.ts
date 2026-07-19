@@ -55,29 +55,36 @@ export async function POST(req: NextRequest) {
   // Delete existing matches for this ladder
   await prisma.match.deleteMany({ where: { ladderId } });
 
-  // Generate Round Robin schedule
+  // Generate Round Robin schedule — repeat for the number of cycles the coach specified
+  const totalRounds = ladder.tournament.totalRounds || 1;
   const schedule = generateRoundRobin(playerIds);
 
-  // Create matches in DB
+  // The base round-robin produces N rounds (N = players if odd, N-1 if even).
+  // We repeat this for each cycle and offset round numbers.
+  const maxRoundInCycle = Math.max(...schedule.map(m => m.round));
+
   const matches = [];
-  for (let i = 0; i < schedule.length; i++) {
-    const m = schedule[i];
-    const match = await prisma.match.create({
-      data: {
-        tournamentId: ladder.tournamentId,
-        ladderId,
-        roundNumber: m.round,
-        player1Id: m.player1Id,
-        player2Id: m.player2Id,
-        matchOrder: i,
-        status: "PENDING",
-      },
+  for (let cycle = 0; cycle < totalRounds; cycle++) {
+    for (let i = 0; i < schedule.length; i++) {
+      const m = schedule[i];
+      const roundOffset = cycle * maxRoundInCycle;
+      const match = await prisma.match.create({
+        data: {
+          tournamentId: ladder.tournamentId,
+          ladderId,
+          roundNumber: m.round + roundOffset,
+          player1Id: m.player1Id,
+          player2Id: m.player2Id,
+          matchOrder: cycle * schedule.length + i,
+          status: "PENDING",
+        },
       include: {
         player1: { select: { id: true, name: true } },
         player2: { select: { id: true, name: true } },
       },
     });
     matches.push(match);
+    }
   }
 
   // Emit real-time update
