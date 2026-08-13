@@ -84,6 +84,11 @@ const tournamentStatusColors: Record<string, string> = {
 
 const fmtLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
 
+// A tournament is "completed" when the coach marks it COMPLETED,
+// or when its date has already passed (results may still be pending).
+const isCompleted = (t: { status: string; dateTime: string }) =>
+  t.status === "COMPLETED" || new Date(t.dateTime) < new Date();
+
 function userRole(session: { user?: { role?: string } } | null): string | undefined {
   return session?.user?.role;
 }
@@ -449,7 +454,7 @@ export default function CoachPage() {
                 </div>
               )}
 
-              {tournaments.map(t => (
+              {tournaments.filter(t => !isCompleted(t)).map(t => (
                 <div key={t.id} onClick={() => selectTournament(t)} className="bg-white rounded-xl border border-gray-100 p-4 cursor-pointer transition-colors hover:border-gray-300 hover:shadow-sm">
                   <div className="flex items-start justify-between mb-2">
                     <div>
@@ -463,10 +468,31 @@ export default function CoachPage() {
                 </div>
               ))}
 
-              {tournaments.length === 0 && !showNewTournament && (
+              {tournaments.filter(t => !isCompleted(t)).length === 0 && !showNewTournament && (
                 <div className="text-center py-8 bg-white rounded-xl border border-dashed border-gray-200">
-                  <p className="text-gray-400 text-sm">No tournaments yet</p>
+                  <p className="text-gray-400 text-sm">No upcoming tournaments</p>
                   <p className="text-gray-300 text-xs mt-1">Click "+ New" above to create one</p>
+                </div>
+              )}
+
+              {/* ── Completed Tournaments ── */}
+              {tournaments.filter(t => isCompleted(t)).length > 0 && (
+                <div className="mt-6">
+                  <h2 className="text-sm font-semibold text-gray-500 mb-2">Completed Tournaments</h2>
+                  <div className="space-y-3">
+                    {tournaments.filter(t => isCompleted(t)).map(t => (
+                      <div key={t.id} onClick={() => selectTournament(t)} className="bg-white rounded-xl border border-gray-100 p-4 cursor-pointer transition-colors hover:border-gray-300 hover:shadow-sm">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold text-sm">{new Date(t.dateTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                            <p className="text-xs text-gray-400">{fmtLabel(t.matchType)} · {fmtLabel(t.formatType)}</p>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">Completed</span>
+                        </div>
+                        <p className="text-xs text-blue-500 font-medium">View Results →</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -476,6 +502,14 @@ export default function CoachPage() {
         {/* ═══════════════ LEVEL 2: TOURNAMENT DETAIL ═══════════════ */}
         {selectedTournament && !selectedLadder && (
           <div className="space-y-4">
+            {/* ── Completed banner ── */}
+            {isCompleted(selectedTournament) && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-green-800">🏆 Tournament Completed</p>
+                <p className="text-xs text-green-600 mt-1">View results by tapping a ladder below. Scores can still be edited after completion.</p>
+              </div>
+            )}
+
             {/* ── Tournament Settings ── */}
             <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
               <h2 className="text-sm font-semibold">Tournament Settings</h2>
@@ -543,7 +577,7 @@ export default function CoachPage() {
                       <p className="font-semibold text-sm">{ladder.label} <span className="text-xs text-gray-400 font-normal">Week {ladder.weekNumber}</span></p>
                       <p className="text-xs text-gray-400 mt-0.5">{ladder.registrations.length} players · {ladder.matches.length} matches</p>
                     </div>
-                    <span className="text-blue-500 text-xs font-medium">Manage →</span>
+                    <span className="text-blue-500 text-xs font-medium">{isCompleted(selectedTournament) ? "View Results →" : "Manage →"}</span>
                   </div>
                 </div>
               ))}
